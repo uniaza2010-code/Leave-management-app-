@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <title>HR Leave Management App - HUL Chiplun</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        form { margin-bottom: 20px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid black; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .hidden { display: none; }
+        button { margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h1>HR Leave Management App</h1>
+    
+    <!-- HR Login Form -->
+    <h2>HR Login</h2>
+    <form id="hrLoginForm">
+        <label for="hrID">HR ID:</label>
+        <input type="text" id="hrID" required><br><br>
+        
+        <label for="hrPassword">Password:</label>
+        <input type="password" id="hrPassword" required><br><br>
+        
+        <button type="button" onclick="hrLogin()">Login</button>
+    </form>
+    
+    <div id="hrMessage"></div>
+    
+    <!-- HR Dashboard -->
+    <div id="hrDashboard" class="hidden">
+        <h2>HR Dashboard</h2>
+        
+        <h3>Add New Employee</h3>
+        <form id="newEmployeeForm">
+            <label for="newName">Employee Name:</label>
+            <input type="text" id="newName" required><br><br>
+            
+            <button type="button" onclick="addNewEmployee()">Generate ID & Password</button>
+        </form>
+        
+        <h3>Update Leave Balance</h3>
+        <button onclick="showUpdateLeavePage()">Update Leave Balance</button>
+        
+        <h3>Pending Leave Requests</h3>
+        <table id="pendingTable">
+            <tr><th>Name</th><th>Type</th><th>Start Date</th><th>End Date</th><th>Reason</th><th>Apply Date/Time</th><th>Action</th></tr>
+        </table>
+        
+        <h3>Full Year Leave Data</h3>
+        <form id="yearDataForm">
+            <label for="yearID">Employee ID:</label>
+            <input type="text" id="yearID" required><br><br>
+            
+            <label for="year">Year:</label>
+            <input type="number" id="year" required><br><br>
+            
+            <button type="button" onclick="displayYearData()">Show Data</button>
+        </form>
+        <table id="yearTable">
+            <tr><th>Date</th><th>Type</th><th>Reason</th><th>Status</th></tr>
+        </table>
+        
+        <button onclick="showAnnualLeavePage()">Add Annual Leaves</button>
+    </div>
+    
+    <!-- Update Leave Balance Page -->
+    <div id="updateLeavePage" class="hidden">
+        <h2>Update Leave Balance</h2>
+        <form id="balanceForm">
+            <label for="balanceID">Employee ID:</label>
+            <input type="text" id="balanceID" required><br><br>
+            
+            <label for="plBalance">PL Balance:</label>
+            <input type="number" id="plBalance" required><br><br>
+            
+            <label for="clBalance">CL Balance:</label>
+            <input type="number" id="clBalance" required><br><br>
+            
+            <label for="slBalance">SL Balance:</label>
+            <input type="number" id="slBalance" required><br><br>
+            
+            <button type="button" onclick="updateLeaveBalance()">Update Balance</button>
+            <button onclick="hideUpdateLeavePage()">Back</button>
+        </form>
+    </div>
+    
+    <!-- Annual Leave Page -->
+    <div id="annualLeavePage" class="hidden">
+        <h2>Add Annual Leaves</h2>
+        <form id="annualForm">
+            <label for="annualID">Employee ID:</label>
+            <input type="text" id="annualID" required><br><br>
+            
+            <label for="annualPL">Add PL:</label>
+            <input type="number" id="annualPL" required><br><br>
+            
+            <label for="annualCL">Add CL:</label>
+            <input type="number" id="annualCL" required><br><br>
+            
+            <label for="annualSL">Add SL:</label>
+            <input type="number" id="annualSL" required><br><br>
+            
+            <button type="button" onclick="addAnnualLeaves()">Add Annual Leaves</button>
+            <button onclick="hideAnnualLeavePage()">Back</button>
+        </form>
+    </div>
+    
+    <script>
+        // Load data from localStorage (shared with employee app)
+        let employees = JSON.parse(localStorage.getItem('employees')) || [
+            { id: '1205', name: 'Sunil Mohite', password: 'Sunil@123', plBalance: 15, clBalance: 7, slBalance: 7, leaves: [] },
+            { id: '1204', name: 'Prakash Malawade', password: 'Prakash@456', plBalance: 15, clBalance: 7, slBalance: 7, leaves: [] }
+        ];
+        let leaves = JSON.parse(localStorage.getItem('leaves')) || [];
+        let nextID = 1206; // Auto-increment for new IDs
+        
+        function saveData() {
+            localStorage.setItem('employees', JSON.stringify(employees));
+            localStorage.setItem('leaves', JSON.stringify(leaves));
+        }
+        
+        function hrLogin() {
+            const id = document.getElementById('hrID').value;
+            const password = document.getElementById('hrPassword').value;
+            
+            if (id === 'admin123' && password === 'Admin@HUL') {
+                document.getElementById('hrLoginForm').classList.add('hidden');
+                document.getElementById('hrDashboard').classList.remove('hidden');
+                document.getElementById('hrMessage').innerText = 'Welcome to HR Dashboard!';
+                updatePendingTable();
+            } else {
+                alert('Invalid HR ID or Password.');
+            }
+        }
+        
+        function addNewEmployee() {
+            const name = document.getElementById('newName').value;
+            if (name) {
+                const id = nextID.toString();
+                const password = 'Emp' + id + '@HUL'; // Unique password
+                employees.push({ id, name, password, plBalance: 15, clBalance: 7, slBalance: 7, leaves: [] });
+                nextID++;
+                saveData();
+                alert(New Employee Added! ID: ${id}, Password: ${password}. Share with employee for app access.);
+                document.getElementById('newEmployeeForm').reset();
+            } else {
+                alert('Please fill the name.');
+            }
+        }
+        
+        function showUpdateLeavePage() {
+            document.getElementById('hrDashboard').classList.add('hidden');
+            document.getElementById('updateLeavePage').classList.remove('hidden');
+        }
+        
+        function hideUpdateLeavePage() {
+            document.getElementById('updateLeavePage').classList.add('hidden');
+            document.getElementById('hrDashboard').classList.remove('hidden');
+        }
+        
+        function updateLeaveBalance() {
+            const id = document.getElementById('balanceID').value;
+            const pl = parseInt(document.getElementById('plBalance').value);
+            const cl = parseInt(document.getElementById('clBalance').value);
+            const sl = parseInt(document.getElementById('slBalance').value);
+            
+            const employee = employees.find(e => e.id === id);
+            if (employee) {
+                employee.plBalance = pl;
+                employee.clBalance = cl;
+                employee.slBalance = sl;
+                saveData();
+                alert('Leave balance updated!');
+                document.getElementById('balanceForm').reset();
+                hideUpdateLeavePage();
+            } else {
+                alert('Employee ID not found.');
+            }
+        }
+        
+        function updatePendingTable() {
+            const table = document.getElementById('pendingTable');
+            table.innerHTML = '<tr><th>Name</th><th>Type</th><th>Start Date</th><th>End Date</th><th>Reason</th><th>Apply Date/Time</th><th>Action</th></tr>';
+            leaves.filter(l => l.hr === 'Pending').forEach((leave, index) => {
+                const row = table.insertRow();
+                row.innerHTML = `
+                    <td>${leave.name}</td>
+                    <td>${leave.type}</td>
+                    <td>${leave.startDate}</td>
+                    <td>${leave.endDate}</td>
+                    <td>${leave.reason}</td>
+                    <td>${leave.applyTime}</td>
+                    <td>
+                        <button onclick="approve(${index})">Approve</button>
+                        <button onclick="reject(${index})">Reject</button>
+                    </td>
+                `;
+            });
+        }
+        
+        function approve(index) {
+            leaves[index].hr = 'Approved';
+            saveData();
+            updatePendingTable();
+        }
+        
+        function reject(index) {
+            const reason = prompt('Enter rejection reason:');
+            if (reason) {
+                leaves[index].hr = 'Rejected';
+                leaves[index].rejectedReason = reason;
+                saveData();
+                updatePendingTable();
+            } else {
+                alert('Reason is required for rejection.');
+            }
+        }
+        
+        function displayYearData() {
+            const id = document.getElementById('yearID').value;
+            const year = document.getElementById('year').value;
+            
+            const employee = employees.find(e => e.id === id);
+            if (employee) {
+                const table = document.getElementById('yearTable');
+                table.innerHTML = '<tr><th>Date</th><th>Type</th><th>Reason</th><th>Status</th></tr>';
+                employee.leaves.filter(l => l.startDate.includes(year)).forEach(leave => {
+                    const row = table.insertRow();
+                    row.innerHTML = `
+                        <td>${leave.startDate} to ${leave.endDate}</td>
+                        <td>${leave.type}</td>
+                        <td>${leave.reason}</td>
+                        <td>${leave.status}</td>
+                    `;
+                });
+            } else {
+                alert('Employee ID not found.');
+            }
+        }
+        
+        function showAnnualLeavePage() {
+            document.getElementById('hrDashboard').classList.add('hidden');
+            document.getElementById('annualLeavePage').classList.remove('hidden');
+        }
+        
+        function hideAnnualLeavePage() {
+            document.getElementById('annualLeavePage').classList.add('hidden');
+            document.getElementById('hrDashboard').classList.remove('hidden');
+        }
+        
+        function addAnnualLeaves() {
+            const id = document.getElementById('annualID').value;
+            const pl = parseInt(document.getElementById('annualPL').value);
+            const cl = parseInt(document.getElementById('annualCL').value);
+            const sl = parseInt(document.getElementById('annualSL').value);
+            
+            const employee = employees.find(e => e.id === id);
+            if (employee) {
+                employee.plBalance += pl;
+                employee.clBalance += cl;
+                employee.slBalance += sl;
+                saveData();
+                alert('Annual leaves added!');
+                document.getElementById('annualForm').reset();
+                hideAnnualLeavePage();
+            } else {
+                alert('Employee ID not found.');
+            }
+        }
+    </script>
+</body>
+</html>
